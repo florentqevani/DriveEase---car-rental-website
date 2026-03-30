@@ -1,16 +1,63 @@
-# Exported from Render on 2026-03-30T13:37:35Z
-version: "1"
-projects:
-- name: Car rental
-  environments:
-  - name: Production
-    services:
-    - type: web
-      name: DriveEase---car-rental-website
-      runtime: docker
-      repo: https://github.com/florentqevani/DriveEase---car-rental-website
-      plan: free
-      region: frankfurt
-      dockerContext: .
-      dockerfilePath: ./Dockerfile
-      autoDeployTrigger: commit
+databases:
+  - name: car-rental-db
+    plan: free
+    databaseName: car_rental
+    user: car_rental_user
+
+services:
+  # ── Backend API ──────────────────────────────────────────
+  - type: web
+    name: car-rental-server
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm ci --omit=dev && mkdir -p uploads && cp -n seed-images/* uploads/ 2>/dev/null || true
+    preDeployCommand: node seed.js
+    startCommand: node src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: car-rental-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false # set to your client URL after first deploy
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+
+  # ── Frontend Static Site ─────────────────────────────────
+  - type: web
+    name: car-rental-client
+    runtime: static
+    plan: free
+    region: frankfurt
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false # set to https://car-rental-server.onrender.com/api
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false

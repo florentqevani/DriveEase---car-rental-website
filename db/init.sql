@@ -2,7 +2,7 @@
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -11,14 +11,14 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE admins (
+CREATE TABLE IF NOT EXISTS admins (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE cars (
+CREATE TABLE IF NOT EXISTS cars (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -26,7 +26,7 @@ CREATE TABLE cars (
     image VARCHAR(255)
 );
 
-CREATE TABLE reservations (
+CREATE TABLE IF NOT EXISTS reservations (
     id SERIAL PRIMARY KEY,
     car_id INT REFERENCES cars(id) ON DELETE SET NULL,
     user_id INT REFERENCES users(id) ON DELETE SET NULL,
@@ -38,7 +38,7 @@ CREATE TABLE reservations (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE refresh_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
     id SERIAL PRIMARY KEY,
     token VARCHAR(512) NOT NULL UNIQUE,
     user_id INT,
@@ -48,17 +48,19 @@ CREATE TABLE refresh_tokens (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_reservations_car_id ON reservations(car_id);
-CREATE INDEX idx_reservations_user_id ON reservations(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_reservations_car_id ON reservations(car_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
 
 -- Seed admin (password: admin123 — hashed with bcrypt)
 INSERT INTO admins (username, email, password)
-VALUES ('admin', 'admin@gmail.com', '$2b$10$GoySzXSzn7dd0OWSAoGs8upUQGA7e43zaoRx1agALneKSqPYFMW2O');
+VALUES ('admin', 'admin@gmail.com', '$2b$10$GoySzXSzn7dd0OWSAoGs8upUQGA7e43zaoRx1agALneKSqPYFMW2O')
+ON CONFLICT (username) DO NOTHING;
 
 -- Seed sample cars
 INSERT INTO cars (name, description, price, image) VALUES
 ('Audi A6', 'Luxury sedan with premium interior and advanced tech features.', 89.99, 'audi.avif'),
 ('BMW 5 Series', 'The ultimate driving machine with sport-tuned suspension.', 99.99, 'bmw.avif'),
-('Mercedes G-Wagon', 'Iconic SUV combining luxury with off-road capability.', 149.99, 'g-wagon.avif');
+('Mercedes G-Wagon', 'Iconic SUV combining luxury with off-road capability.', 149.99, 'g-wagon.avif')
+ON CONFLICT DO NOTHING;
