@@ -1,0 +1,16 @@
+# Exported from Render on 2026-03-30T13:37:35Z
+version: "1"
+projects:
+- name: Car rental
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: DriveEase---car-rental-website
+      runtime: docker
+      repo: https://github.com/florentqevani/DriveEase---car-rental-website
+      plan: free
+      region: frankfurt
+      dockerContext: .
+      dockerfilePath: ./Dockerfile
+      autoDeployTrigger: commit
