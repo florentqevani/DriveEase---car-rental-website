@@ -1,4 +1,4 @@
-const { readFileSync, existsSync } = require('node:fs');
+const { readFileSync, existsSync, writeFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { Pool } = require('pg');
 
@@ -32,9 +32,33 @@ async function seed() {
     console.log('[seed] Database initialized successfully');
   } catch (err) {
     console.error('[seed] Error initializing database:', err.message);
-  } finally {
-    await pool.end();
   }
+
+  // Restore uploaded images from DB to filesystem
+  try {
+    const uploadsDir = join(__dirname, 'uploads');
+    mkdirSync(uploadsDir, { recursive: true });
+
+    const result = await pool.query(
+      'SELECT image, image_data, image_type FROM cars WHERE image IS NOT NULL AND image_data IS NOT NULL'
+    );
+
+    let restored = 0;
+    for (const row of result.rows) {
+      const filePath = join(uploadsDir, row.image);
+      if (!existsSync(filePath)) {
+        writeFileSync(filePath, row.image_data);
+        restored++;
+      }
+    }
+    if (restored > 0) {
+      console.log(`[seed] Restored ${restored} upload(s) from database`);
+    }
+  } catch (err) {
+    console.error('[seed] Error restoring uploads:', err.message);
+  }
+
+  await pool.end();
 }
 
 // If run directly, execute and exit

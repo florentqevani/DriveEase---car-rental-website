@@ -54,6 +54,16 @@ CREATE INDEX IF NOT EXISTS idx_reservations_car_id ON reservations(car_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cars_name ON cars(name);
 
+-- Add image persistence columns (idempotent for existing DBs)
+DO $$ BEGIN
+  ALTER TABLE cars ADD COLUMN image_data BYTEA;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE cars ADD COLUMN image_type VARCHAR(50);
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+
 -- Seed admin (password: admin123 — hashed with bcrypt)
 INSERT INTO admins (username, email, password)
 VALUES ('admin', 'admin@gmail.com', '$2b$10$GoySzXSzn7dd0OWSAoGs8upUQGA7e43zaoRx1agALneKSqPYFMW2O')
