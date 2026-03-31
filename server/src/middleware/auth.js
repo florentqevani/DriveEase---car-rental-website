@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const db = require('../config/db');
+const db = require('../config/db').default;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
 const ACCESS_TOKEN_EXPIRY = '15m';

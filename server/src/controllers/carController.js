@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../config/db').default;
 
 async function getAllCars(_req, res) {
   try {

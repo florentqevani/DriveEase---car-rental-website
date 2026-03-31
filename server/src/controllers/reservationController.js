@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { query } = require('../config/db').default;
 const { sendInvoiceEmail } = require('../services/emailService');
 
 async function getMyReservations(req, res) {

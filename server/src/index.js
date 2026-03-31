@@ -9,7 +9,7 @@ const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const reservationRoutes = require('./routes/reservations');
 const userRoutes = require('./routes/users');
-const db = require('./config/db');
+const db = require('./config/db').default;
 
 const app = express();
 const PORT = process.env.PORT || 4000;
