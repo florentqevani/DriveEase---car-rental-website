@@ -13,9 +13,8 @@ services:
     region: frankfurt
     rootDir: server
     numInstances: 1
-    buildCommand: npm ci --omit=dev
-    preDeployCommand: node seed.js && mkdir -p uploads && cp -n seed-images/* uploads/ 2>/dev/null || true
-    startCommand: node src/index.js
+    buildCommand: npm ci --omit=dev && mkdir -p uploads && cp -n seed-images/* uploads/ 2>/dev/null || true
+    startCommand: node seed.js && node src/index.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -42,10 +41,6 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/server/uploads
-      sizeGB: 1
 
   # ── Frontend Static Site ─────────────────────────────────
   - type: web
