@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const reservationRoutes = require('./routes/reservations');
 const userRoutes = require('./routes/users');
+const db = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -54,6 +55,23 @@ app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+// DB test endpoint
+app.get('/api/test-db', async (_req, res) => {
+  try {
+    const result = await db.query('SELECT NOW()');
+    res.json({ 
+      success: true, 
+      timestamp: result.rows[0],
+      message: 'Database connected!'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
 
 // ─── Global error handler ────────────────────────────────
 app.use((err, _req, res, _next) => {
