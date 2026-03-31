@@ -9,17 +9,24 @@ const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const reservationRoutes = require('./routes/reservations');
 const userRoutes = require('./routes/users');
-const db = require('./config/db').default;
+const db = require('./config/db');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 // ─── Security ────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
+// Fix CORS to work with Render frontend
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:5173'];
+  : [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5000',
+      // Add your Render frontend URL here once deployed
+      // 'https://your-frontend.onrender.com'
+    ];
 
 app.use(cors({
   origin: allowedOrigins,
@@ -53,13 +60,17 @@ app.use('/api/cars', carRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/users', userRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+// ─── Health check ────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
-// DB test endpoint
+// ─── DB test endpoint ────────────────────────────────────
 app.get('/api/test-db', async (_req, res) => {
   try {
+    console.log('[/api/test-db] Testing database connection...');
     const result = await db.query('SELECT NOW() AS time, current_database() AS database, current_user AS user');
+    console.log('[/api/test-db] Success! DB:', result.rows[0]);
     res.json({ 
       success: true, 
       connection: result.rows[0],
@@ -71,6 +82,7 @@ app.get('/api/test-db', async (_req, res) => {
       message: 'Database connected!'
     });
   } catch (error) {
+    console.error('[/api/test-db] Error:', error.message);
     res.status(500).json({ 
       success: false, 
       error: error.message,
@@ -93,6 +105,8 @@ app.use((err, _req, res, _next) => {
 // ─── Start ───────────────────────────────────────────────
 const server = app.listen(PORT, () => {
   console.log(`[server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
+  console.log(`[server] DATABASE_URL is ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+  console.log(`[server] ALLOWED_ORIGINS: ${allowedOrigins.join(', ')}`);
 });
 
 // Graceful shutdown
