@@ -23,7 +23,7 @@ async function refreshAccessToken() {
     throw new Error('Session expired');
   }
 
-  const data = await res.json();
+  const data = await res.text().then(t => t ? JSON.parse(t) : {});
   localStorage.setItem('token', data.accessToken);
   localStorage.setItem('refreshToken', data.refreshToken);
   return data.accessToken;
@@ -49,7 +49,7 @@ async function request(endpoint, options = {}, retried = false) {
       const newToken = await refreshAccessToken();
       headers['Authorization'] = `Bearer ${newToken}`;
       const retryRes = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-      const retryData = await retryRes.json();
+      const retryData = await retryRes.text().then(t => t ? JSON.parse(t) : {});
       if (!retryRes.ok) throw new Error(retryData.error || 'Request failed');
       return retryData;
     } catch {
