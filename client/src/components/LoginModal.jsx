@@ -4,6 +4,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 export default function LoginModal() {
   const { showLoginModal, closeLogin, login, loginRedirect } = useAuth();
   const navigate = useNavigate();
@@ -132,19 +134,23 @@ export default function LoginModal() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
 
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
+            {googleClientId && (
+              <>
+                <div className="auth-divider">
+                  <span>or</span>
+                </div>
 
-            <div className="google-btn-wrapper">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError('Google login failed')}
-                size="large"
-                width="100%"
-                text="signin_with"
-              />
-            </div>
+                <div className="google-btn-wrapper">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google login failed')}
+                    size="large"
+                    width="100%"
+                    text="signin_with"
+                  />
+                </div>
+              </>
+            )}
           </form>
         )}
 
@@ -170,19 +176,23 @@ export default function LoginModal() {
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
 
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
+            {googleClientId && (
+              <>
+                <div className="auth-divider">
+                  <span>or</span>
+                </div>
 
-            <div className="google-btn-wrapper">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError('Google login failed')}
-                size="large"
-                width="100%"
-                text="signup_with"
-              />
-            </div>
+                <div className="google-btn-wrapper">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google login failed')}
+                    size="large"
+                    width="100%"
+                    text="signup_with"
+                  />
+                </div>
+              </>
+            )}
           </form>
         )}
       </div>
