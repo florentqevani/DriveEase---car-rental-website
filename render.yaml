@@ -52,7 +52,6 @@ services:
     name: car-rental-client
     runtime: static
     plan: free
-    region: frankfurt
     rootDir: client
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
