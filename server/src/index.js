@@ -108,10 +108,14 @@ app.use((err, _req, res, _next) => {
 });
 
 // ─── Start ───────────────────────────────────────────────
-const server = app.listen(PORT, () => {
+const seed = require('../seed');
+
+const server = app.listen(PORT, async () => {
   console.log(`[server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
   console.log(`[server] DATABASE_URL is ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
   console.log(`[server] ALLOWED_ORIGINS: ${allowedOrigins.join(', ')}`);
+  // Run seed after server is listening (non-blocking)
+  try { await seed(); } catch (e) { console.error('[seed] Failed:', e.message); }
 });
 
 // Graceful shutdown
