@@ -58,7 +58,13 @@ async function request(endpoint, options = {}, retried = false) {
     }
   }
 
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(res.ok ? 'Invalid server response' : `Server error (${res.status})`);
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

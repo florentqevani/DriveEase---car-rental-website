@@ -8,14 +8,21 @@ async function seed() {
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
 
-  const sql = readFileSync(join(__dirname, '..', 'db', 'init.sql'), 'utf8');
+  // Try local path first (rootDir: server on Render), then monorepo path
+  let sqlPath = join(__dirname, 'db', 'init.sql');
+  const { existsSync } = require('node:fs');
+  if (!existsSync(sqlPath)) {
+    sqlPath = join(__dirname, '..', 'db', 'init.sql');
+  }
+
+  const sql = readFileSync(sqlPath, 'utf8');
 
   try {
     await pool.query(sql);
     console.log('[seed] Database initialized successfully');
   } catch (err) {
     console.error('[seed] Error initializing database:', err.message);
-    process.exit(1);
+    // Don't exit — let the server start anyway
   } finally {
     await pool.end();
   }
