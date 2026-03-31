@@ -2,9 +2,14 @@
     "name": "car-rental-server",
     "version": "1.0.0",
     "private": true,
+    "engines": {
+        "node": ">=20.0.0"
+    },
     "scripts": {
         "start": "node src/index.js",
-        "dev": "node --watch src/index.js"
+        "dev": "node --watch src/index.js",
+        "build": "echo 'No build step needed'",
+        "seed": "node seed.js"
     },
     "dependencies": {
         "bcrypt": "^5.1.1",

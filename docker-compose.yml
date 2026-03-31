@@ -42,7 +42,7 @@ services:
     build:
       context: ./client
       args:
-        VITE_API_URL: http://localhost:4000/api
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000/api}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     ports:
