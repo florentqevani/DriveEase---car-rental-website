@@ -17,19 +17,24 @@ const PORT = process.env.PORT || 5000;
 // ─── Security ────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-// Fix CORS to work with Render frontend
+// CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5000',
-      // Add your Render frontend URL here once deployed
-      // 'https://your-frontend.onrender.com'
-    ];
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
+console.log('[server] ALLOWED_ORIGINS:', allowedOrigins);
+console.log('[server] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, health checks)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('[CORS] Blocked origin:', origin);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
 }));
 
