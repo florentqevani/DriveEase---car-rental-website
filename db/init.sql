@@ -52,6 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_reservations_car_id ON reservations(car_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cars_name ON cars(name);
 
 -- Seed admin (password: admin123 — hashed with bcrypt)
 INSERT INTO admins (username, email, password)
@@ -63,4 +64,4 @@ INSERT INTO cars (name, description, price, image) VALUES
 ('Audi A6', 'Luxury sedan with premium interior and advanced tech features.', 89.99, 'audi.avif'),
 ('BMW 5 Series', 'The ultimate driving machine with sport-tuned suspension.', 99.99, 'bmw.avif'),
 ('Mercedes G-Wagon', 'Iconic SUV combining luxury with off-road capability.', 149.99, 'g-wagon.avif')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;

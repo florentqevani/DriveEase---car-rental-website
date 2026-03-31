@@ -13,9 +13,13 @@ services:
     region: frankfurt
     rootDir: server
     numInstances: 1
-    buildCommand: npm ci --omit=dev && mkdir -p uploads && cp -n seed-images/* uploads/ 2>/dev/null || true && cp -r ../db ./db 2>/dev/null || true
-    startCommand: node src/index.js
+    buildCommand: npm ci --omit=dev && cp -r ../db ./db 2>/dev/null || true
+    startCommand: mkdir -p uploads && cp -n seed-images/* uploads/ 2>/dev/null || true && node src/index.js
     healthCheckPath: /api/health
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
