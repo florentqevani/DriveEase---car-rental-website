@@ -59,16 +59,22 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 // DB test endpoint
 app.get('/api/test-db', async (_req, res) => {
   try {
-    const result = await db.query('SELECT NOW()');
+    const result = await db.query('SELECT NOW() AS time, current_database() AS database, current_user AS user');
     res.json({ 
       success: true, 
-      timestamp: result.rows[0],
+      connection: result.rows[0],
+      pool: {
+        total: db.pool.totalCount,
+        idle: db.pool.idleCount,
+        waiting: db.pool.waitingCount,
+      },
       message: 'Database connected!'
     });
   } catch (error) {
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      hint: !process.env.DATABASE_URL ? 'DATABASE_URL env var is not set' : 'Check DATABASE_URL and DB availability'
     });
   }
 });
