@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     setUser(null);
+    window.location.href = '/';
   }, []);
 
   useEffect(() => {
