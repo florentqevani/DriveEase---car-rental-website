@@ -1,4 +1,4 @@
-const { hash: _hash, compare } = require('bcrypt');
+const { hash: _hash, compare } = require('bcryptjs');
 const { OAuth2Client } = require('google-auth-library');
 const { query } = require('../config/db');
 const { signAccessToken, generateRefreshToken, saveRefreshToken, revokeRefreshToken, findRefreshToken } = require('../middleware/auth');
