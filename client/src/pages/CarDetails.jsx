@@ -29,6 +29,7 @@ function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minD
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [hovered, setHovered] = useState(null);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -46,75 +47,95 @@ function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minD
     return result;
   }, [year, month]);
 
-  function prev() {
-    setViewDate(new Date(year, month - 1, 1));
-  }
-  function next() {
-    setViewDate(new Date(year, month + 1, 1));
-  }
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  const calStyle = {
-    background: 'var(--color-bg-secondary)',
-    borderRadius: 12,
-    padding: 16,
-    userSelect: 'none',
-  };
-  const headerStyle = {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
-  };
-  const navBtn = {
-    background: 'none', border: 'none', color: 'var(--color-text)', cursor: 'pointer',
-    fontSize: 18, padding: '4px 8px', borderRadius: 6,
-  };
-  const gridStyle = {
-    display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, textAlign: 'center',
-  };
-  const dayHeaderStyle = {
-    fontSize: '0.75rem', color: 'var(--color-text-muted)', padding: '4px 0', fontWeight: 600,
-  };
+  function prev() { setViewDate(new Date(year, month - 1, 1)); }
+  function next() { setViewDate(new Date(year, month + 1, 1)); }
 
   return (
-    <div style={calStyle}>
-      <div style={headerStyle}>
-        <button type="button" style={navBtn} onClick={prev}>‹</button>
-        <strong style={{ fontSize: '0.95rem' }}>{monthName}</strong>
-        <button type="button" style={navBtn} onClick={next}>›</button>
+    <div style={{
+      background: 'var(--color-bg-secondary)',
+      borderRadius: 14,
+      padding: '14px 14px 10px',
+      userSelect: 'none',
+      maxWidth: 320,
+      margin: '0 auto',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 10, padding: '0 2px',
+      }}>
+        <button type="button" onClick={prev} style={{
+          background: 'none', border: 'none', color: 'var(--color-text-muted)',
+          cursor: 'pointer', fontSize: 16, padding: '2px 6px', borderRadius: 6,
+          lineHeight: 1, transition: 'color 0.15s',
+        }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}>‹</button>
+        <span style={{ fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.02em' }}>{monthName}</span>
+        <button type="button" onClick={next} style={{
+          background: 'none', border: 'none', color: 'var(--color-text-muted)',
+          cursor: 'pointer', fontSize: 16, padding: '2px 6px', borderRadius: 6,
+          lineHeight: 1, transition: 'color 0.15s',
+        }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}>›</button>
       </div>
-      <div style={gridStyle}>
-        {DAYS.map((d) => <div key={d} style={dayHeaderStyle}>{d}</div>)}
+
+      {/* Day headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, textAlign: 'center', marginBottom: 4 }}>
+        {DAYS.map((d) => (
+          <div key={d} style={{
+            fontSize: '0.65rem', color: 'var(--color-text-muted)',
+            padding: '2px 0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, textAlign: 'center' }}>
         {cells.map((date, i) => {
           if (!date) return <div key={`e${i}`} />;
           const ds = toDateStr(date);
           const blocked = blockedDates.has(ds);
           const past = ds < minDate;
           const disabled = blocked || past;
+          const isToday = ds === todayStr;
           const isStart = ds === selectedStart;
           const isEnd = ds === selectedEnd;
           const inRange = selectedStart && selectedEnd && ds > selectedStart && ds < selectedEnd;
+          const isHoverPreview = selectedStart && !selectedEnd && hovered && !blocked && !past
+            && ds > selectedStart && ds <= hovered;
 
           let bg = 'transparent';
           let color = 'var(--color-text)';
-          let fontWeight = 'normal';
+          let fontWeight = '400';
           let cursor = 'pointer';
           let opacity = 1;
-          let border = '2px solid transparent';
+          let boxShadow = 'none';
+          let borderColor = 'transparent';
 
           if (blocked) {
-            bg = 'rgba(239, 68, 68, 0.15)';
+            bg = 'rgba(239, 68, 68, 0.12)';
             color = '#ef4444';
-            fontWeight = '700';
+            fontWeight = '600';
             cursor = 'not-allowed';
           } else if (past) {
-            opacity = 0.3;
+            opacity = 0.25;
             cursor = 'default';
           } else if (isStart || isEnd) {
             bg = '#6366f1';
             color = '#fff';
             fontWeight = '600';
-          } else if (inRange) {
-            bg = 'rgba(99, 102, 241, 0.15)';
+            boxShadow = '0 2px 8px rgba(99,102,241,0.35)';
+          } else if (inRange || isHoverPreview) {
+            bg = isHoverPreview ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.13)';
             color = '#6366f1';
             fontWeight = '500';
+          }
+
+          if (isToday && !isStart && !isEnd) {
+            borderColor = 'var(--color-text-muted)';
           }
 
           return (
@@ -123,9 +144,12 @@ function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minD
               key={ds}
               disabled={disabled}
               onClick={() => !disabled && onSelect(ds)}
+              onMouseEnter={() => !disabled && setHovered(ds)}
+              onMouseLeave={() => setHovered(null)}
               style={{
-                width: '100%',
-                aspectRatio: '1',
+                width: 34,
+                height: 34,
+                margin: '0 auto',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -135,9 +159,12 @@ function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minD
                 fontWeight,
                 cursor,
                 opacity,
-                border,
-                fontSize: '0.85rem',
-                transition: 'all 0.15s',
+                border: `1.5px solid ${borderColor}`,
+                boxShadow,
+                fontSize: '0.78rem',
+                transition: 'all 0.15s ease',
+                lineHeight: 1,
+                padding: 0,
               }}
             >
               {date.getDate()}
@@ -145,14 +172,24 @@ function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minD
           );
         })}
       </div>
-      <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+
+      {/* Legend */}
+      <div style={{
+        display: 'flex', gap: 14, marginTop: 10, paddingTop: 8,
+        borderTop: '1px solid var(--color-bg-tertiary, rgba(255,255,255,0.06))',
+        fontSize: '0.68rem', color: 'var(--color-text-muted)',
+      }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
           Booked
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
           Selected
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid var(--color-text-muted)', display: 'inline-block', boxSizing: 'border-box' }} />
+          Today
         </span>
       </div>
     </div>
