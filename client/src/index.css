@@ -952,6 +952,46 @@ textarea {
 }
 
 /* ========================================
+/* ========================================
+   Hamburger Toggle
+   ======================================== */
+.navbar-toggle {
+    display        : none;
+    flex-direction : column;
+    justify-content: center;
+    gap            : 5px;
+    width          : 32px;
+    height         : 32px;
+    background     : none;
+    border         : none;
+    cursor         : pointer;
+    padding        : 4px;
+    z-index        : 110;
+}
+
+.navbar-toggle span {
+    display         : block;
+    width           : 22px;
+    height          : 2px;
+    background      : #fff;
+    border-radius   : 2px;
+    transition      : all 0.25s ease;
+    transform-origin: center;
+}
+
+.navbar-toggle.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.navbar-toggle.open span:nth-child(2) {
+    opacity: 0;
+}
+
+.navbar-toggle.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ========================================
    Responsive
    ======================================== */
 @media (max-width: 768px) {
@@ -971,18 +1011,57 @@ textarea {
         position: static;
     }
 
-    .navbar-links {
-        gap: 4px;
-    }
-
-    .navbar-links a {
-        padding  : 8px 10px;
-        font-size: 0.8rem;
-    }
-}
-
-@media (max-width: 768px) {
     .container {
-        padding: 0 5px;
+        padding: 0 12px;
+    }
+
+    .page {
+        padding: 24px 0 60px;
+    }
+
+    /* Hamburger visible */
+    .navbar-toggle {
+        display: flex;
+    }
+
+    /* Mobile menu */
+    .navbar-links {
+        position      : fixed;
+        top           : 0;
+        right         : 0;
+        width         : min(280px, 75vw);
+        height        : 100vh;
+        background    : var(--color-primary);
+        flex-direction: column;
+        align-items   : stretch;
+        padding       : 80px 24px 32px;
+        gap           : 4px;
+        transform     : translateX(100%);
+        transition    : transform 0.3s ease;
+        box-shadow    : -4px 0 24px rgba(0, 0, 0, 0.25);
+        z-index       : 105;
+        overflow-y    : auto;
+    }
+
+    .navbar-links.show {
+        transform: translateX(0);
+    }
+
+    .navbar-links a,
+    .navbar-links button {
+        padding      : 12px 16px;
+        font-size    : 0.95rem;
+        border-radius: var(--radius-sm);
+        text-align   : left;
+        width        : 100%;
+    }
+
+    .navbar-links a:hover,
+    .navbar-links a.active {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .card {
+        border-radius: var(--radius-md);
     }
 }

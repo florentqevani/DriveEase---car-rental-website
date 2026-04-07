@@ -1,9 +1,14 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar() {
   const { user, logout, openLogin } = useAuth();
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close menu on route change
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const linkClass = (path) =>
     `${pathname === path ? 'active' : ''}`;
@@ -14,7 +19,18 @@ export default function Navbar() {
         <Link to="/" className="navbar-brand">
           Drive<span>Ease</span>
         </Link>
-        <div className="navbar-links">
+
+        <button
+          className={`navbar-toggle ${menuOpen ? 'open' : ''}`}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <div className={`navbar-links ${menuOpen ? 'show' : ''}`}>
           <Link to="/" className={linkClass('/')}>Home</Link>
           {user?.role === 'admin' && (
             <Link to="/admin" className={linkClass('/admin')}>Dashboard</Link>
