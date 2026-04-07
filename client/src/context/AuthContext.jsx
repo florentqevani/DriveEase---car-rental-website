@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     const rt = localStorage.getItem('refreshToken');
     if (rt) {
-      api.post('/auth/logout', { refreshToken: rt }).catch(() => {});
+      api.post('/auth/logout', { refreshToken: rt }).catch(() => { });
     }
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -23,6 +23,27 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setForceLogout(logout);
   }, [logout]);
+
+  // Auto-logout after 30 minutes of inactivity
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_LIMIT = 30 * 60 * 1000;
+    let timer = setTimeout(logout, INACTIVITY_LIMIT);
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(logout, INACTIVITY_LIMIT);
+    };
+
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [user, logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');

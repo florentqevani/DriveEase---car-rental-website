@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -14,7 +14,7 @@ pool.on('error', (err) => {
   console.error('[db] Unexpected pool error:', err.message);
 });
 
-module.exports = {
+export default {
   query: (text, params) => pool.query(text, params),
   pool,
 };
