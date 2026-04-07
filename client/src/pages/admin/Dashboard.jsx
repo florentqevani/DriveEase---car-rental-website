@@ -2,6 +2,7 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import ManageReservations from './ManageReservations';
 import ManageCars from './ManageCars';
 import ManageUsers from './ManageUsers';
+import EmailSettings from './EmailSettings';
 
 export default function Dashboard() {
   const { pathname } = useLocation();
@@ -25,6 +26,9 @@ export default function Dashboard() {
           <Link to="/admin/users" className={sideClass('/admin/users')}>
             👥 Users
           </Link>
+          <Link to="/admin/email" className={sideClass('/admin/email')}>
+            ✉️ Email Settings
+          </Link>
         </aside>
 
         <div className="admin-content">
@@ -32,6 +36,7 @@ export default function Dashboard() {
             <Route index element={<ManageReservations />} />
             <Route path="cars" element={<ManageCars />} />
             <Route path="users" element={<ManageUsers />} />
+            <Route path="email" element={<EmailSettings />} />
           </Routes>
         </div>
       </div>

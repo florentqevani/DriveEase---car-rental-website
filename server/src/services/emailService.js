@@ -1,14 +1,48 @@
 const nodemailer = require('nodemailer');
+const db = require('../config/db');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const EMAIL_KEYS = [
+  'smtp_host',
+  'smtp_port',
+  'smtp_secure',
+  'smtp_user',
+  'smtp_pass',
+  'smtp_from_name',
+  'email_enabled',
+];
+
+async function getSmtpConfig() {
+  try {
+    const result = await db.query(
+      'SELECT key, value FROM settings WHERE key = ANY($1)',
+      [EMAIL_KEYS]
+    );
+    const s = {};
+    for (const row of result.rows) {
+      s[row.key] = row.value;
+    }
+    return {
+      enabled: (s.email_enabled || (process.env.SMTP_USER ? 'true' : 'false')) === 'true',
+      host: s.smtp_host || process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(s.smtp_port || process.env.SMTP_PORT || '587', 10),
+      secure: (s.smtp_secure || process.env.SMTP_SECURE || 'false') === 'true',
+      user: s.smtp_user || process.env.SMTP_USER,
+      pass: s.smtp_pass || process.env.SMTP_PASS,
+      fromName: s.smtp_from_name || 'DriveEase',
+    };
+  } catch (err) {
+    console.warn('[email] Failed to load DB settings, falling back to env:', err.message);
+    return {
+      enabled: !!process.env.SMTP_USER,
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: process.env.SMTP_SECURE === 'true',
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+      fromName: 'DriveEase',
+    };
+  }
+}
 
 async function sendInvoiceEmail({
   to,
@@ -21,8 +55,10 @@ async function sendInvoiceEmail({
   totalPrice,
   reservationId,
 }) {
-  if (!process.env.SMTP_USER) {
-    console.warn('[email] SMTP_USER not configured — skipping invoice email');
+  const config = await getSmtpConfig();
+
+  if (!config.enabled || !config.user) {
+    console.warn('[email] Email sending is disabled or SMTP not configured — skipping invoice email');
     return;
   }
 
@@ -75,10 +111,17 @@ async function sendInvoiceEmail({
     </div>
   `;
 
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.user, pass: config.pass },
+  });
+
   await transporter.sendMail({
-    from: `"DriveEase" <${process.env.SMTP_USER}>`,
+    from: `"${config.fromName}" <${config.user}>`,
     to,
-    subject: `DriveEase Invoice — Reservation #${reservationId}`,
+    subject: `${config.fromName} Invoice — Reservation #${reservationId}`,
     html,
   });
 

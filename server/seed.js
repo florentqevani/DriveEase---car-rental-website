@@ -34,6 +34,19 @@ async function seed() {
     console.error('[seed] Error initializing database:', err.message);
   }
 
+  // Ensure settings table exists (for existing DBs that missed init.sql update)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+  } catch (err) {
+    console.error('[seed] Error creating settings table:', err.message);
+  }
+
   // Restore uploaded images from DB to filesystem
   try {
     const uploadsDir = join(__dirname, 'uploads');

@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const reservationRoutes = require('./routes/reservations');
 const userRoutes = require('./routes/users');
+const settingsRoutes = require('./routes/settings');
 const db = require('./config/db');
 
 const app = express();
@@ -64,6 +65,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ─── Health check ────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
@@ -76,8 +78,8 @@ app.get('/api/test-db', async (_req, res) => {
     console.log('[/api/test-db] Testing database connection...');
     const result = await db.query('SELECT NOW() AS time, current_database() AS database, current_user AS user');
     console.log('[/api/test-db] Success! DB:', result.rows[0]);
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       connection: result.rows[0],
       pool: {
         total: db.pool.totalCount,
@@ -88,8 +90,8 @@ app.get('/api/test-db', async (_req, res) => {
     });
   } catch (error) {
     console.error('[/api/test-db] Error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: error.message,
       hint: !process.env.DATABASE_URL ? 'DATABASE_URL env var is not set' : 'Check DATABASE_URL and DB availability'
     });
