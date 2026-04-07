@@ -61,22 +61,6 @@ async function createReservation(req, res) {
   }
 
   try {
-    // Check if user already has an active reservation (return_date not yet passed)
-    if (user_id) {
-      const active = await query(
-        `SELECT id, return_date FROM reservations
-         WHERE user_id = $1 AND return_date >= CURRENT_DATE
-         LIMIT 1`,
-        [user_id]
-      );
-      if (active.rows.length > 0) {
-        const rd = new Date(active.rows[0].return_date).toLocaleDateString('en-US');
-        return res.status(409).json({
-          error: `You already have an active reservation (until ${rd}). You can book again after it ends.`,
-        });
-      }
-    }
-
     // Check if car is already reserved for the requested date range
     const overlap = await query(
       `SELECT id FROM reservations
@@ -163,4 +147,19 @@ async function adminCancelReservation(req, res) {
   }
 }
 
-module.exports = { getMyReservations, getAllReservations, getReservationById, createReservation, cancelReservation, adminCancelReservation };
+async function getBookedDates(req, res) {
+  try {
+    const result = await query(
+      `SELECT pickup_date, return_date FROM reservations
+       WHERE car_id = $1 AND return_date >= CURRENT_DATE
+       ORDER BY pickup_date`,
+      [req.params.carId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get booked dates error:', err);
+    res.status(500).json({ error: 'Failed to fetch booked dates' });
+  }
+}
+
+module.exports = { getMyReservations, getAllReservations, getReservationById, createReservation, cancelReservation, adminCancelReservation, getBookedDates };

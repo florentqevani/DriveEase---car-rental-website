@@ -1,10 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const BASE = API_URL.replace('/api', '');
+
+function getDatesInRange(start, end) {
+  const dates = [];
+  const d = new Date(start);
+  const last = new Date(end);
+  while (d < last) {
+    dates.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
 
 export default function CarDetails() {
   const { id } = useParams();
@@ -13,6 +24,8 @@ export default function CarDetails() {
   const [car, setCar] = useState(null);
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [dateError, setDateError] = useState('');
 
   // Admin edit state
   const [editName, setEditName] = useState('');
@@ -30,7 +43,53 @@ export default function CarDetails() {
       setEditDesc(data.description || '');
       setEditPrice(data.price);
     }).catch(() => navigate('/'));
+    api.get(`/reservations/booked/${id}`).then(setBookedRanges).catch(() => { });
   }, [id, navigate]);
+
+  const blockedDates = useMemo(() => {
+    const set = new Set();
+    for (const r of bookedRanges) {
+      for (const d of getDatesInRange(r.pickup_date, r.return_date)) {
+        set.add(d);
+      }
+    }
+    return set;
+  }, [bookedRanges]);
+
+  function isDateBlocked(dateStr) {
+    return blockedDates.has(dateStr);
+  }
+
+  function hasOverlap(pickup, returnD) {
+    if (!pickup || !returnD) return false;
+    return bookedRanges.some(
+      (r) => pickup < r.return_date.split('T')[0] && returnD > r.pickup_date.split('T')[0]
+    );
+  }
+
+  function handlePickupChange(val) {
+    setPickupDate(val);
+    setDateError('');
+    if (returnDate && val >= returnDate) setReturnDate('');
+    if (isDateBlocked(val)) {
+      setDateError('This date is already booked');
+      setPickupDate('');
+    }
+  }
+
+  function handleReturnChange(val) {
+    setReturnDate(val);
+    setDateError('');
+    if (isDateBlocked(val)) {
+      setDateError('This date is already booked');
+      setReturnDate('');
+      return;
+    }
+    if (pickupDate && hasOverlap(pickupDate, val)) {
+      setDateError('Your selected range overlaps with an existing reservation');
+      setReturnDate('');
+    }
+  }
 
   if (!car) return <div className="spinner" />;
 
@@ -116,6 +175,25 @@ export default function CarDetails() {
             </form>
           ) : (
             <form onSubmit={handleSubmit}>
+              {bookedRanges.length > 0 && (
+                <div style={{
+                  background: 'var(--color-bg-secondary)',
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  marginBottom: 16,
+                  fontSize: '0.85rem',
+                }}>
+                  <strong style={{ display: 'block', marginBottom: 6 }}>Unavailable dates:</strong>
+                  {bookedRanges.map((r, i) => (
+                    <div key={i} style={{ color: 'var(--color-error)', padding: '2px 0' }}>
+                      {new Date(r.pickup_date).toLocaleDateString()} — {new Date(r.return_date).toLocaleDateString()}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {dateError && <div className="alert alert-error">{dateError}</div>}
+
               <div className="form-group">
                 <label>Pickup Date</label>
                 <input
@@ -123,7 +201,7 @@ export default function CarDetails() {
                   className="form-input"
                   min={today}
                   value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
+                  onChange={(e) => handlePickupChange(e.target.value)}
                   required
                 />
               </div>
@@ -134,7 +212,7 @@ export default function CarDetails() {
                   className="form-input"
                   min={pickupDate || today}
                   value={returnDate}
-                  onChange={(e) => setReturnDate(e.target.value)}
+                  onChange={(e) => handleReturnChange(e.target.value)}
                   required
                 />
               </div>
