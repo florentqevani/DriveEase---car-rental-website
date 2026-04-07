@@ -46,8 +46,20 @@ async function seed() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pending_users (
+        id SERIAL PRIMARY KEY,
+        full_name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        code VARCHAR(6) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_pending_users_email ON pending_users(email)');
   } catch (err) {
-    console.error('[seed] Error creating settings table:', err.message);
+    console.error('[seed] Error creating settings/pending_users table:', err.message);
   }
 
   // Restore uploaded images from DB to filesystem

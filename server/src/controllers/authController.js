@@ -1,7 +1,9 @@
 const { hash: _hash, compare } = require('bcryptjs');
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
 const { query } = require('../config/db');
 const { signAccessToken, generateRefreshToken, saveRefreshToken, revokeRefreshToken, findRefreshToken } = require('../middleware/auth');
+const { sendVerificationEmail } = require('../services/emailService');
 
 const SALT_ROUNDS = 10;
 const googleClient = new OAuth2Client();
@@ -26,13 +28,79 @@ async function register(req, res) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
+    // Generate 6-digit verification code
+    const code = crypto.randomInt(100000, 999999).toString();
     const hash = await _hash(password, SALT_ROUNDS);
-    const result = await query(
-      'INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3) RETURNING id, full_name, email',
-      [full_name, email, hash]
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Remove any previous pending entries for this email
+    await query('DELETE FROM pending_users WHERE email = $1', [email]);
+
+    await query(
+      'INSERT INTO pending_users (full_name, email, password, code, expires_at) VALUES ($1, $2, $3, $4, $5)',
+      [full_name, email, hash, code, expiresAt]
     );
 
-    const user = result.rows[0];
+    // Send verification email
+    const sent = await sendVerificationEmail({ to: email, code });
+    if (!sent) {
+      // If email service is disabled, complete registration directly
+      await query('DELETE FROM pending_users WHERE email = $1', [email]);
+      const result = await query(
+        'INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3) RETURNING id, full_name, email',
+        [full_name, email, hash]
+      );
+      const user = result.rows[0];
+      const tokens = await issueTokens(
+        { id: user.id, email: user.email, role: 'user' },
+        { userId: user.id, role: 'user' }
+      );
+      return res.status(201).json({ user: { ...user, role: 'user' }, ...tokens });
+    }
+
+    res.status(200).json({ message: 'Verification code sent to your email', requiresVerification: true });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+}
+
+async function verifyRegistration(req, res) {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({ error: 'Email and verification code are required' });
+  }
+
+  try {
+    const result = await query(
+      'SELECT * FROM pending_users WHERE email = $1 AND code = $2 AND expires_at > NOW()',
+      [email, code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired verification code' });
+    }
+
+    const pending = result.rows[0];
+
+    // Check again that email isn't already registered (race condition)
+    const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      await query('DELETE FROM pending_users WHERE email = $1', [email]);
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Create the actual user
+    const userResult = await query(
+      'INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3) RETURNING id, full_name, email',
+      [pending.full_name, pending.email, pending.password]
+    );
+
+    // Clean up pending entries
+    await query('DELETE FROM pending_users WHERE email = $1', [email]);
+
+    const user = userResult.rows[0];
     const tokens = await issueTokens(
       { id: user.id, email: user.email, role: 'user' },
       { userId: user.id, role: 'user' }
@@ -40,8 +108,37 @@ async function register(req, res) {
 
     res.status(201).json({ user: { ...user, role: 'user' }, ...tokens });
   } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('Verify registration error:', err);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+}
+
+async function resendVerification(req, res) {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const pending = await query('SELECT id FROM pending_users WHERE email = $1', [email]);
+    if (pending.rows.length === 0) {
+      return res.status(400).json({ error: 'No pending registration found for this email' });
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await query(
+      'UPDATE pending_users SET code = $1, expires_at = $2 WHERE email = $3',
+      [code, expiresAt, email]
+    );
+
+    await sendVerificationEmail({ to: email, code });
+    res.json({ message: 'New verification code sent' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    res.status(500).json({ error: 'Failed to resend code' });
   }
 }
 
@@ -225,7 +322,7 @@ async function refresh(req, res) {
 async function logout(req, res) {
   const { refreshToken } = req.body;
   if (refreshToken) {
-    await revokeRefreshToken(refreshToken).catch(() => {});
+    await revokeRefreshToken(refreshToken).catch(() => { });
   }
   res.json({ message: 'Logged out' });
 }
@@ -314,4 +411,4 @@ async function deleteMe(req, res) {
   }
 }
 
-module.exports = { register, loginUser, googleLogin, loginAdmin, refresh, logout, getMe, updateMe, deleteMe };
+module.exports = { register, verifyRegistration, resendVerification, loginUser, googleLogin, loginAdmin, refresh, logout, getMe, updateMe, deleteMe };

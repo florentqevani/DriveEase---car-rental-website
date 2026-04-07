@@ -127,6 +127,13 @@ async function cleanupExpiredReservations() {
     if (result.rowCount > 0) {
       console.log(`[cleanup] Removed ${result.rowCount} expired reservation(s)`);
     }
+    // Clean up expired pending registrations
+    try {
+      const pending = await db.query('DELETE FROM pending_users WHERE expires_at < NOW() RETURNING id');
+      if (pending.rowCount > 0) {
+        console.log(`[cleanup] Removed ${pending.rowCount} expired pending registration(s)`);
+      }
+    } catch (_) { /* table may not exist on first boot */ }
   } catch (err) {
     console.error('[cleanup] Error:', err.message);
   }

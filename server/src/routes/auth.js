@@ -1,10 +1,12 @@
 const express = require('express');
-const { register, loginUser, googleLogin, loginAdmin, refresh, logout, getMe, updateMe, deleteMe } = require('../controllers/authController');
+const { register, verifyRegistration, resendVerification, loginUser, googleLogin, loginAdmin, refresh, logout, getMe, updateMe, deleteMe } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
 router.post('/register', register);
+router.post('/verify', verifyRegistration);
+router.post('/resend-verification', resendVerification);
 router.post('/login', loginUser);
 router.post('/google', googleLogin);
 router.post('/admin/login', loginAdmin);

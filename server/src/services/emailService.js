@@ -128,4 +128,47 @@ async function sendInvoiceEmail({
   console.log(`[email] Invoice sent to ${to} for reservation #${reservationId}`);
 }
 
-module.exports = { sendInvoiceEmail };
+async function sendVerificationEmail({ to, code }) {
+  const config = await getSmtpConfig();
+
+  if (!config.enabled || !config.user) {
+    console.warn('[email] Email sending is disabled or SMTP not configured — skipping verification email');
+    return false;
+  }
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff;">
+      <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 32px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">DriveEase</h1>
+        <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">Email Verification</p>
+      </div>
+      <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+        <p style="font-size: 16px; color: #374151;">Your verification code is:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="display: inline-block; font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #6366f1; background: #f5f3ff; padding: 16px 32px; border-radius: 12px; border: 2px dashed #c4b5fd;">${code}</span>
+        </div>
+        <p style="font-size: 14px; color: #6b7280; text-align: center;">This code expires in <strong>10 minutes</strong>.</p>
+        <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 24px;">If you did not request this, you can safely ignore this email.</p>
+      </div>
+    </div>
+  `;
+
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.user, pass: config.pass },
+  });
+
+  await transporter.sendMail({
+    from: `"${config.fromName}" <${config.user}>`,
+    to,
+    subject: `${config.fromName} — Your Verification Code`,
+    html,
+  });
+
+  console.log(`[email] Verification code sent to ${to}`);
+  return true;
+}
+
+module.exports = { sendInvoiceEmail, sendVerificationEmail };
