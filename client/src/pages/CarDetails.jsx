@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -15,6 +15,148 @@ function getDatesInRange(start, end) {
     d.setDate(d.getDate() + 1);
   }
   return dates;
+}
+
+function toDateStr(date) {
+  return date.toISOString().split('T')[0];
+}
+
+/* ── Mini Calendar Component ─────────────────────────────── */
+const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+function MiniCalendar({ blockedDates, selectedStart, selectedEnd, onSelect, minDate }) {
+  const [viewDate, setViewDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthName = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const cells = useMemo(() => {
+    const first = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    let startDay = first.getDay() - 1;
+    if (startDay < 0) startDay = 6;
+
+    const result = [];
+    for (let i = 0; i < startDay; i++) result.push(null);
+    for (let d = 1; d <= lastDay; d++) result.push(new Date(year, month, d));
+    return result;
+  }, [year, month]);
+
+  function prev() {
+    setViewDate(new Date(year, month - 1, 1));
+  }
+  function next() {
+    setViewDate(new Date(year, month + 1, 1));
+  }
+
+  const calStyle = {
+    background: 'var(--color-bg-secondary)',
+    borderRadius: 12,
+    padding: 16,
+    userSelect: 'none',
+  };
+  const headerStyle = {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
+  };
+  const navBtn = {
+    background: 'none', border: 'none', color: 'var(--color-text)', cursor: 'pointer',
+    fontSize: 18, padding: '4px 8px', borderRadius: 6,
+  };
+  const gridStyle = {
+    display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, textAlign: 'center',
+  };
+  const dayHeaderStyle = {
+    fontSize: '0.75rem', color: 'var(--color-text-muted)', padding: '4px 0', fontWeight: 600,
+  };
+
+  return (
+    <div style={calStyle}>
+      <div style={headerStyle}>
+        <button type="button" style={navBtn} onClick={prev}>‹</button>
+        <strong style={{ fontSize: '0.95rem' }}>{monthName}</strong>
+        <button type="button" style={navBtn} onClick={next}>›</button>
+      </div>
+      <div style={gridStyle}>
+        {DAYS.map((d) => <div key={d} style={dayHeaderStyle}>{d}</div>)}
+        {cells.map((date, i) => {
+          if (!date) return <div key={`e${i}`} />;
+          const ds = toDateStr(date);
+          const blocked = blockedDates.has(ds);
+          const past = ds < minDate;
+          const disabled = blocked || past;
+          const isStart = ds === selectedStart;
+          const isEnd = ds === selectedEnd;
+          const inRange = selectedStart && selectedEnd && ds > selectedStart && ds < selectedEnd;
+
+          let bg = 'transparent';
+          let color = 'var(--color-text)';
+          let fontWeight = 'normal';
+          let cursor = 'pointer';
+          let opacity = 1;
+          let border = '2px solid transparent';
+
+          if (blocked) {
+            bg = 'rgba(239, 68, 68, 0.15)';
+            color = '#ef4444';
+            fontWeight = '700';
+            cursor = 'not-allowed';
+          } else if (past) {
+            opacity = 0.3;
+            cursor = 'default';
+          } else if (isStart || isEnd) {
+            bg = '#6366f1';
+            color = '#fff';
+            fontWeight = '600';
+          } else if (inRange) {
+            bg = 'rgba(99, 102, 241, 0.15)';
+            color = '#6366f1';
+            fontWeight = '500';
+          }
+
+          return (
+            <button
+              type="button"
+              key={ds}
+              disabled={disabled}
+              onClick={() => !disabled && onSelect(ds)}
+              style={{
+                width: '100%',
+                aspectRatio: '1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                background: bg,
+                color,
+                fontWeight,
+                cursor,
+                opacity,
+                border,
+                fontSize: '0.85rem',
+                transition: 'all 0.15s',
+              }}
+            >
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+          Booked
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
+          Selected
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default function CarDetails() {
@@ -71,25 +213,38 @@ export default function CarDetails() {
     setPickupDate(val);
     setDateError('');
     if (returnDate && val >= returnDate) setReturnDate('');
-    if (isDateBlocked(val)) {
-      setDateError('This date is already booked');
-      setPickupDate('');
-    }
   }
 
   function handleReturnChange(val) {
     setReturnDate(val);
     setDateError('');
-    if (isDateBlocked(val)) {
-      setDateError('This date is already booked');
-      setReturnDate('');
-      return;
-    }
     if (pickupDate && hasOverlap(pickupDate, val)) {
       setDateError('Your selected range overlaps with an existing reservation');
       setReturnDate('');
     }
   }
+
+  const handleCalendarSelect = useCallback((dateStr) => {
+    setDateError('');
+    if (!pickupDate || (pickupDate && returnDate)) {
+      // Start new selection
+      setPickupDate(dateStr);
+      setReturnDate('');
+    } else {
+      // Selecting return date
+      if (dateStr <= pickupDate) {
+        // Clicked before pickup — restart
+        setPickupDate(dateStr);
+        setReturnDate('');
+      } else {
+        if (hasOverlap(pickupDate, dateStr)) {
+          setDateError('Your selected range overlaps with an existing reservation');
+        } else {
+          setReturnDate(dateStr);
+        }
+      }
+    }
+  }, [pickupDate, returnDate, bookedRanges]);
 
   if (!car) return <div className="spinner" />;
 
@@ -175,48 +330,37 @@ export default function CarDetails() {
             </form>
           ) : (
             <form onSubmit={handleSubmit}>
-              {bookedRanges.length > 0 && (
-                <div style={{
-                  background: 'var(--color-bg-secondary)',
-                  borderRadius: 8,
-                  padding: '12px 16px',
-                  marginBottom: 16,
-                  fontSize: '0.85rem',
-                }}>
-                  <strong style={{ display: 'block', marginBottom: 6 }}>Unavailable dates:</strong>
-                  {bookedRanges.map((r, i) => (
-                    <div key={i} style={{ color: 'var(--color-error)', padding: '2px 0' }}>
-                      {new Date(r.pickup_date).toLocaleDateString()} — {new Date(r.return_date).toLocaleDateString()}
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {dateError && <div className="alert alert-error">{dateError}</div>}
 
-              <div className="form-group">
-                <label>Pickup Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  min={today}
-                  value={pickupDate}
-                  onChange={(e) => handlePickupChange(e.target.value)}
-                  required
-                />
+              <MiniCalendar
+                blockedDates={blockedDates}
+                selectedStart={pickupDate}
+                selectedEnd={returnDate}
+                onSelect={handleCalendarSelect}
+                minDate={today}
+              />
+
+              <div style={{ display: 'flex', gap: 12, margin: '16px 0' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 4, display: 'block' }}>Pickup</label>
+                  <div className="form-input" style={{ minHeight: 40, display: 'flex', alignItems: 'center' }}>
+                    {pickupDate || <span style={{ color: 'var(--color-text-muted)' }}>Select date</span>}
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 4, display: 'block' }}>Return</label>
+                  <div className="form-input" style={{ minHeight: 40, display: 'flex', alignItems: 'center' }}>
+                    {returnDate || <span style={{ color: 'var(--color-text-muted)' }}>Select date</span>}
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Return Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  min={pickupDate || today}
-                  value={returnDate}
-                  onChange={(e) => handleReturnChange(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-accent" style={{ width: '100%' }}>
+
+              <button
+                type="submit"
+                className="btn btn-accent"
+                style={{ width: '100%' }}
+                disabled={!pickupDate || !returnDate}
+              >
                 Proceed to Checkout
               </button>
             </form>
