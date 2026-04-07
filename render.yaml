@@ -42,7 +42,7 @@ services:
       - key: SMTP_SECURE
         value: "false"
       - key: SMTP_USER
-        value: a75df9001@smtp-brevo.com
+        sync: false # set to your Brevo SMTP user in Render dashboard
       - key: SMTP_PASS
         sync: false # set to your Brevo SMTP key in Render dashboard
 

@@ -2,7 +2,11 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
+if (!process.env.JWT_SECRET) {
+  console.error('[auth] FATAL: JWT_SECRET environment variable is not set');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_DAYS = 7;
 

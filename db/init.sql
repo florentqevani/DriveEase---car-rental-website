@@ -83,7 +83,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_column THEN NULL;
 END $$;
 
--- Seed admin (password: admin123 — hashed with bcrypt)
+-- Seed admin (change password after first login)
 INSERT INTO admins (username, email, password)
 VALUES ('admin', 'admin@gmail.com', '$2b$10$GoySzXSzn7dd0OWSAoGs8upUQGA7e43zaoRx1agALneKSqPYFMW2O')
 ON CONFLICT (username) DO NOTHING;
