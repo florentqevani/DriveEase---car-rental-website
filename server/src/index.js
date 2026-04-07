@@ -120,8 +120,23 @@ const server = app.listen(PORT, async () => {
   try { await seed(); } catch (e) { console.error('[seed] Failed:', e.message); }
 });
 
+// ─── Auto-cleanup expired reservations (every hour) ─────
+async function cleanupExpiredReservations() {
+  try {
+    const result = await db.query('DELETE FROM reservations WHERE return_date < CURRENT_DATE RETURNING id');
+    if (result.rowCount > 0) {
+      console.log(`[cleanup] Removed ${result.rowCount} expired reservation(s)`);
+    }
+  } catch (err) {
+    console.error('[cleanup] Error:', err.message);
+  }
+}
+cleanupExpiredReservations();
+const cleanupInterval = setInterval(cleanupExpiredReservations, 60 * 60 * 1000);
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[server] SIGTERM received, shutting down gracefully...');
+  clearInterval(cleanupInterval);
   server.close(() => process.exit(0));
 });

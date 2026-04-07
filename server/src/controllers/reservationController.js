@@ -61,6 +61,35 @@ async function createReservation(req, res) {
   }
 
   try {
+    // Check if user already has an active reservation (return_date not yet passed)
+    if (user_id) {
+      const active = await query(
+        `SELECT id, return_date FROM reservations
+         WHERE user_id = $1 AND return_date >= CURRENT_DATE
+         LIMIT 1`,
+        [user_id]
+      );
+      if (active.rows.length > 0) {
+        const rd = new Date(active.rows[0].return_date).toLocaleDateString('en-US');
+        return res.status(409).json({
+          error: `You already have an active reservation (until ${rd}). You can book again after it ends.`,
+        });
+      }
+    }
+
+    // Check if car is already reserved for the requested date range
+    const overlap = await query(
+      `SELECT id FROM reservations
+       WHERE car_id = $1 AND pickup_date < $3 AND return_date > $2
+       LIMIT 1`,
+      [car_id, pickup_date, return_date]
+    );
+    if (overlap.rows.length > 0) {
+      return res.status(409).json({
+        error: 'This car is already reserved for the selected dates. Please choose different dates.',
+      });
+    }
+
     // Calculate total price server-side
     const carResult = await query('SELECT price FROM cars WHERE id = $1', [car_id]);
     if (carResult.rows.length === 0) {
