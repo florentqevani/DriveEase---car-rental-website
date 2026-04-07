@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS cars (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     price NUMERIC(10,2) NOT NULL,
-    image VARCHAR(255)
+    image VARCHAR(255),
+    image_data BYTEA,
+    image_type VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS reservations (
