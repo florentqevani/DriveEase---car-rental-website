@@ -36,15 +36,15 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: SMTP_HOST
-        value: smtp.gmail.com
+        value: smtp-relay.brevo.com
       - key: SMTP_PORT
         value: "587"
       - key: SMTP_SECURE
         value: "false"
       - key: SMTP_USER
-        sync: false
+        value: a75df9001@smtp-brevo.com
       - key: SMTP_PASS
-        sync: false
+        sync: false # set to your Brevo SMTP key in Render dashboard
 
   # ── Frontend Static Site ─────────────────────────────────
   - type: web
