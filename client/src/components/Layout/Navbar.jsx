@@ -17,6 +17,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand">
+          <img src="https://img.icons8.com/?size=100&id=AmvvpYN8jrzG&format=png&color=000000" alt="car icon" style={{ width: 28, height: 28, marginRight: 8, verticalAlign: 'middle' }} />
           Drive<span>Ease</span>
         </Link>
 
